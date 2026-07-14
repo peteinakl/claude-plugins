@@ -1,1 +1,31 @@
+# OS
 .DS_Store
+.DS_Store?
+._*
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Node (in case future plugins bundle MCP servers/scripts)
+node_modules/
+npm-debug.log*
+
+# Python (in case future plugins bundle helper scripts)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Env / secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Build artefacts
+*.plugin
+/tmp/
+dist/

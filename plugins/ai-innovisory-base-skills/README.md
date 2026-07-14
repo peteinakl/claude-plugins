@@ -1,0 +1,24 @@
+# AI Innovisory base skills
+
+Standardised Claude Cowork skills, provided freely by [AI Innovisory](https://aiinnovisory.com). This plugin is a growing collection of general-purpose skills that aren't specific to any one client or engagement — the base layer every AI Innovisory Cowork setup starts from.
+
+## Skills included
+
+### research-review
+
+Runs a full readiness review of research (pasted text, a document, or a URL) against a nine-criterion rubric: source quality, evidence separation, currency, coverage, traceability, contradictions, decision value, argument quality, and insight depth. Performs claim-by-claim web verification and returns a markdown scorecard with a Ready / Use with caution / Draft only verdict.
+
+Trigger it with prompts like "is this good enough to act on", "is the thinking sound", or "can I take this to the board or client" — or hand it a document, market scan, or brief directly.
+
+## Installing
+
+Add the marketplace, then install the plugin:
+
+```
+/plugin marketplace add peteinakl/claude-plugins
+/plugin install ai-innovisory-base-skills@ai-innovisory-plugins
+```
+
+## Versioning
+
+This plugin follows semver (`MAJOR.MINOR.PATCH`) in `plugin.json`. The version is bumped on every release that changes a skill's behaviour, so installed copies pick up the update. See `PLUGINS.md` at the repository root for the release log across all plugins in this marketplace.

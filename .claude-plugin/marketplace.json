@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "ai-innovisory-plugins",
+  "owner": {
+    "name": "AI Innovisory",
+    "email": "peter@aiinnovisory.com"
+  },
+  "description": "Free base skills for Claude Cowork, maintained by AI Innovisory.",
+  "plugins": [
+    {
+      "name": "ai-innovisory-base-skills",
+      "source": "./plugins/ai-innovisory-base-skills",
+      "description": "Standardised base skills for Claude Cowork from AI Innovisory, starting with a research readiness reviewer.",
+      "author": {
+        "name": "Peter Mangin",
+        "email": "peter@aiinnovisory.com"
+      },
+      "license": "MIT"
+    }
+  ]
+}
