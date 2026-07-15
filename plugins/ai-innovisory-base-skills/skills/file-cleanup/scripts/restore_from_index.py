@@ -36,6 +36,9 @@ import sys
 
 
 def parse_index_table(content):
+    """Parse the archive table, tolerating both the 5-column format (before
+    the Topic column existed) and the current 6-column one, so restoring
+    works regardless of when a given row was written."""
     lines = content.splitlines()
     header_idx = None
     for i, line in enumerate(lines):
@@ -51,7 +54,7 @@ def parse_index_table(content):
         if not stripped.startswith("|"):
             continue
         cells = [c.strip() for c in stripped.strip("|").split("|")]
-        if len(cells) != 5:
+        if len(cells) not in (5, 6):
             continue
         rows.append({
             "line_index": i,
@@ -60,6 +63,7 @@ def parse_index_table(content):
             "archived_to": cells[2],
             "last_modified": cells[3],
             "size": cells[4],
+            "topic": cells[5] if len(cells) == 6 else "-",
         })
     return rows, lines
 

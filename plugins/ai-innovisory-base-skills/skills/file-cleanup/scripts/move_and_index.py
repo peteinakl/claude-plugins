@@ -16,12 +16,16 @@ entry can be either:
     filename and today's date, there's no judgment call left to make, so
     there's no reason to have an LLM compose that path by hand for
     potentially hundreds of files.
-  - an object {"source": "...", "dest_relative": "..."}: used for a custom
-    structure, or to override the computed destination for a specific file.
-    dest_relative is a path relative to --archive-dir.
+  - an object {"source": "...", "dest_relative": "...", "topic": "..."}:
+    dest_relative overrides the computed destination (required for a custom
+    structure). topic is optional, a short plain-language description of
+    what the file is, written by Claude from an excerpt extracted by
+    extract_excerpts.py, never by this script. Leave it out, or use "",
+    for files that weren't given a topic (e.g. images, video, audio).
 
 Example:
-    ["/abs/path/a.docx", "/abs/path/b.png",
+    ["/abs/path/a.docx",
+     {"source": "/abs/path/b.pdf", "topic": "2025 Q3 board deck draft"},
      {"source": "/abs/path/c.psd", "dest_relative": "design-files/c.psd"}]
 
 Why "mirror original folder structure" isn't an option here: this skill
@@ -38,7 +42,10 @@ near the top, in plain language, so anyone opening the file, human or a
 future run of this skill, can see the convention in force without having to
 reverse-engineer it from the table rows. If index.md already exists but
 predates this section, it gets backfilled in place; existing rows and any
-other content are left untouched.
+other content are left untouched. The same applies to the Topic column: an
+existing index.md written before topics existed gets the column added to
+its header and a "-" backfilled onto every existing row, so the table stays
+rectangular rather than growing a ragged extra cell only on new rows.
 
 Safety:
   - Creates the archive directory (and any dest subfolders) if missing.
@@ -109,6 +116,19 @@ def unique_dest(dest):
     return f"{base}-{n}{ext}"
 
 
+TOPIC_MAX_LEN = 140
+
+
+def sanitize_topic(topic):
+    """Keep a topic string from breaking the markdown table it lands in."""
+    if not topic:
+        return "-"
+    flat = " ".join(topic.split()).replace("|", "/")
+    if len(flat) > TOPIC_MAX_LEN:
+        flat = flat[:TOPIC_MAX_LEN - 1].rstrip() + "…"
+    return flat
+
+
 def human_size(n):
     size = float(n)
     for unit in ["B", "KB", "MB", "GB"]:
@@ -153,6 +173,48 @@ def backfill_filing_rules(content, structure, rules_text):
     return new_content, True
 
 
+def has_topic_column(content):
+    return re.search(r"^\|\s*Archived date\b.*\bTopic\s*\|", content, re.MULTILINE) is not None
+
+
+def backfill_topic_column(content):
+    """Add a Topic column to an existing index.md that predates it: append it
+    to the header and separator rows, and a '-' cell to every existing data
+    row, so old and new rows stay the same width instead of the table
+    growing a ragged extra cell only on rows written from now on."""
+    if has_topic_column(content):
+        return content, False
+
+    lines = content.splitlines(keepends=True)
+    header_idx = None
+    for i, line in enumerate(lines):
+        if line.strip().startswith("| Archived date"):
+            header_idx = i
+            break
+    if header_idx is None:
+        return content, False  # no table yet, nothing to migrate
+
+    def append_cell(line, cell_text):
+        stripped = line.rstrip("\n")
+        newline = "\n" if line.endswith("\n") else ""
+        if stripped.rstrip().endswith("|"):
+            return stripped.rstrip() + f" {cell_text} |" + newline
+        return line
+
+    new_lines = list(lines)
+    new_lines[header_idx] = append_cell(lines[header_idx], "Topic")
+    if header_idx + 1 < len(lines) and re.match(r"^\|[\s\-|]+\|\s*$", lines[header_idx + 1].strip()):
+        new_lines[header_idx + 1] = append_cell(lines[header_idx + 1], "---")
+        data_start = header_idx + 2
+    else:
+        data_start = header_idx + 1
+    for i in range(data_start, len(lines)):
+        if lines[i].strip().startswith("|"):
+            new_lines[i] = append_cell(lines[i], "-")
+
+    return "".join(new_lines), True
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("manifest", help="path to the manifest JSON file")
@@ -177,9 +239,11 @@ def main():
     rows = []
     for item in manifest:
         if isinstance(item, str):
-            src, dest_rel = item, None
+            src, dest_rel, topic = item, None, None
         else:
-            src, dest_rel = item["source"], item.get("dest_relative")
+            src = item["source"]
+            dest_rel = item.get("dest_relative")
+            topic = item.get("topic") or None
 
         if not os.path.isfile(src):
             print(f"SKIP (source no longer exists): {src}", file=sys.stderr)
@@ -208,6 +272,7 @@ def main():
             "archived_to": os.path.relpath(dest, archive_dir),
             "last_modified": datetime.fromtimestamp(mtime).date().isoformat(),
             "size": human_size(size),
+            "topic": sanitize_topic(topic),
         })
         print(f"Moved: {src} -> {dest}")
 
@@ -219,18 +284,22 @@ def main():
             "hadn't been modified in 90+ days. This file is the manifest for the "
             "archive, it is never itself moved or archived.\n\n"
         )
-        header += "| Archived date | Original location | Archived to | Last modified | Size |\n"
-        header += "|---|---|---|---|---|\n"
+        header += "| Archived date | Original location | Archived to | Last modified | Size | Topic |\n"
+        header += "|---|---|---|---|---|---|\n"
         with open(index_path, "w") as f:
             f.write(header)
     else:
         with open(index_path) as f:
             existing = f.read()
-        updated, changed = backfill_filing_rules(existing, args.structure, args.rules_text)
-        if changed:
+        updated, rules_changed = backfill_filing_rules(existing, args.structure, args.rules_text)
+        updated, topic_changed = backfill_topic_column(updated)
+        if rules_changed or topic_changed:
             with open(index_path, "w") as f:
                 f.write(updated)
-            print("Backfilled a missing 'Filing rules' section into the existing index.md")
+            if rules_changed:
+                print("Backfilled a missing 'Filing rules' section into the existing index.md")
+            if topic_changed:
+                print("Backfilled a missing Topic column into the existing index.md")
 
     if not rows:
         print("No files moved.")
@@ -240,7 +309,7 @@ def main():
         for r in rows:
             f.write(
                 f"| {r['archived_date']} | {r['original_path']} | {r['archived_to']} "
-                f"| {r['last_modified']} | {r['size']} |\n"
+                f"| {r['last_modified']} | {r['size']} | {r['topic']} |\n"
             )
 
     print(f"Updated index: {index_path} ({len(rows)} entries added)")

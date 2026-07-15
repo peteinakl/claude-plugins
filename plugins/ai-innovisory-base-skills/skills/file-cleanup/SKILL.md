@@ -1,15 +1,15 @@
 ---
 name: file-cleanup
-description: Finds files in a folder that haven't been modified in 90+ days, previews them for approval, then moves the approved ones into a structured archive subfolder and logs each move in a markdown index.md. Use this whenever the user wants to tidy up, declutter, or archive old files from a folder, e.g. "clean up my Downloads folder", "archive anything I haven't touched in months", "this folder's a mess, get rid of the old stuff", or "what's stale in here". Only scans the top level of the target folder (not subfolders), never moves anything without explicit confirmation, never archives its own index.md, and always protects Claude-specific context files (CLAUDE.md, MEMORY.md, and anything CLAUDE.md references) from being moved regardless of age. Also handles undoing a previous run. Trigger even if the user doesn't say "archive" or "90 days" explicitly, general folder-tidying requests for a specific directory are the signal.
+description: Finds files in a folder that haven't been modified in 90+ days, previews them for approval, then moves the approved ones into a structured archive subfolder and logs each move in a markdown index.md, including a short topic for readable files (text, PDF, docx) so the log says what a file actually is, not just its name. Use this whenever the user wants to tidy up, declutter, or archive old files from a folder, e.g. "clean up my Downloads folder", "archive anything I haven't touched in months", "this folder's a mess, get rid of the old stuff", or "what's stale in here". Only scans the top level of the target folder (not subfolders), never moves anything without explicit confirmation, never archives its own index.md, and always protects Claude-specific context files (CLAUDE.md, MEMORY.md, and anything CLAUDE.md references) from being moved regardless of age. Also handles undoing a previous run. Trigger even if the user doesn't say "archive" or "90 days" explicitly, general folder-tidying requests for a specific directory are the signal.
 ---
 
 # File cleanup
 
 ## What this does
 
-Scans one folder for files that haven't been modified in over 90 days, shows the person exactly what it's about to move, and, once they say go, moves those files into a structured `archive/` subfolder and records every move in a markdown index. Nothing gets moved without a preview and an explicit yes; this is a skill that changes the file system, so caution is core to the design, not an afterthought. A previous run can also be undone from that same log.
+Scans one folder for files that haven't been modified in over 90 days, shows the person exactly what it's about to move, and, once they say go, moves those files into a structured `archive/` subfolder and records every move in a markdown index, including a short topic for anything readable, so the log says what a file actually is, not just its name and size. Nothing gets moved without a preview and an explicit yes; this is a skill that changes the file system, so caution is core to the design, not an afterthought. A previous run can also be undone from that same log.
 
-Two things it deliberately never does: it never archives Claude's own context files (`CLAUDE.md`, `MEMORY.md`, and anything `CLAUDE.md` references), no matter how old they are, since their relevance isn't a function of when they were last edited. And it never opens a file's contents to decide anything, filename, extension, size and last-modified date are enough, which matters especially for video and audio files where reading the bytes would be slow and wasteful for no benefit.
+Two things it deliberately never does: it never archives Claude's own context files (`CLAUDE.md`, `MEMORY.md`, and anything `CLAUDE.md` references), no matter how old they are, since their relevance isn't a function of when they were last edited. And deciding whether or where to archive a file never depends on its contents, filename, extension, size and last-modified date are enough for that. Content only gets read afterwards, for the Topic column, and only for plain text, PDF, and docx files where a short read is cheap; images, video, audio, spreadsheets, and other binaries are never opened at all, not for the move decision and not for a topic either.
 
 ## Step 1: Confirm the target folder
 
@@ -44,7 +44,7 @@ If the scan comes back empty, tell the person the folder's already clean and sto
 
 Look for an existing archive folder inside `<target_dir>` (the default name is `archive`; also check for `_archive`, `Archive`, or `Archived` in case one already exists under a different name). How you file new archives depends on what you find, in this order:
 
-1. **`index.md` already exists in the archive folder.** Read it. Every index.md this skill produces has a `## Filing rules` section near the top, a plain-language paragraph explaining exactly how files get filed, plus a short `<!-- archive-structure: ... -->` marker comment for quick machine detection. If that section is there, use the scheme it describes. If the file exists but has no `## Filing rules` section (it predates this behaviour, or was hand-edited), infer the scheme from the "Archived to" column of existing entries: paths like `2026-07/report.docx` mean year-month, paths grouped under folders like `documents/` or `images/` mean by-type. `move_and_index.py` backfills the missing section automatically in Step 5 once you tell it what you inferred.
+1. **`index.md` already exists in the archive folder.** Read it. Every index.md this skill produces has a `## Filing rules` section near the top, a plain-language paragraph explaining exactly how files get filed, plus a short `<!-- archive-structure: ... -->` marker comment for quick machine detection. If that section is there, use the scheme it describes. If the file exists but has no `## Filing rules` section (it predates this behaviour, or was hand-edited), infer the scheme from the "Archived to" column of existing entries: paths like `2026-07/report.docx` mean year-month, paths grouped under folders like `documents/` or `images/` mean by-type. `move_and_index.py` backfills the missing section automatically in Step 6 once you tell it what you inferred.
 2. **Archive folder exists but has no index.md.** Infer the scheme from its subfolder names the same way.
 3. **Neither exists, this is the first run.** Default to year-month subfolders (`archive/2026-07/`). If the target folder is already organized in an obviously different way, e.g. it's already split cleanly into type-based subfolders like `contracts/`, `invoices/`, `images/`, a matching by-type scheme may serve the person better. If it's genuinely unclear, ask.
 
@@ -56,17 +56,36 @@ Before moving anything, show the person the candidate table from Step 2 (or a tr
 
 For a short list, offering a structured yes/no or "which of these to skip" question works fine. For anything beyond a handful of files, a multiple-choice question tool isn't the right instrument, it's built for a few discrete options, not picking through dozens of files, so just ask in plain language ("archive all of these except the two spreadsheets?") and take their reply as-is. Do not move files on the assumption that scanning implied consent; the scan and the move are two separate steps on purpose.
 
-If they want to exclude specific files from the batch, drop those from the manifest you build in Step 5 rather than re-running the scan.
+If they want to exclude specific files from the batch, drop those from the manifest you build in Step 6 rather than re-running the scan.
 
-## Step 5: Move and log
+## Step 5: Write topics for the files that can support one
 
-Build a manifest for the approved files. For the `yearmonth` and `type` structures this is just a JSON array of absolute source paths, `move_and_index.py` works out the destination itself:
+`index.md` has a Topic column, a short plain-language note on what a file actually is, not just its name. It's deliberately not filled in for everything: writing it means reading a bit of the file, and this skill's whole design leans on never opening a file's contents unless there's a real payoff, so it only applies to file types where a quick read is cheap and meaningful, plain text, markdown, PDF, and docx. Images, video, audio, spreadsheets, and other binaries always get `-` in this column, on principle, not because nobody got around to it.
 
-```json
-["/path/to/old-report.docx", "/path/to/old-photo.png"]
+Run the extractor against the approved files (not the whole scan, just the ones the person confirmed in Step 4):
+
+```bash
+python3 scripts/extract_excerpts.py <path1> <path2> ...
 ```
 
-For `custom`, or to override the destination for one specific file, use objects instead: `{"source": "...", "dest_relative": "path relative to the archive folder"}`. The two forms can be mixed in the same array.
+For each file it returns either a short excerpt (capped at ~1500 characters, and for PDFs the first two pages only) or a reason it couldn't get one, missing `pdftotext` or `python-docx`, a scanned PDF with no text layer, or a type it doesn't attempt at all. If a needed tool is missing and the person clearly wants topics, it's fine to install it (`pip install python-docx --break-system-packages`, or the local package manager for poppler-utils) rather than silently leaving every docx or PDF blank, that's a one-time setup cost, not a per-file one.
+
+From each excerpt, write a short topic, a few words to one short sentence, enough to tell someone what the file is without opening it. Don't summarize the whole document, the excerpt itself is already deliberately brief. Leave the topic out entirely for anything `extract_excerpts.py` couldn't read.
+
+For a genuinely large batch (dozens of extractable files), this step's cost scales with how many of them there are, since each excerpt has to be read to write its topic. That's a real tradeoff, not a hidden one: worth mentioning to the person if the batch is large, so it's their call whether they want topics for all of it or just want to move on without them.
+
+## Step 6: Move and log
+
+Build a manifest for the approved files. For the `yearmonth` and `type` structures, entries are either a plain source path, or an object if you have a topic to attach:
+
+```json
+[
+  "/path/to/old-photo.png",
+  {"source": "/path/to/old-report.docx", "topic": "Q3 budget planning notes for the marketing team"}
+]
+```
+
+For `custom`, or to override the destination for one specific file, add `dest_relative` to the object: `{"source": "...", "dest_relative": "path relative to the archive folder", "topic": "..."}`. All forms can be mixed in the same array.
 
 Write the manifest to a temp file, then run:
 
@@ -74,11 +93,11 @@ Write the manifest to a temp file, then run:
 python3 scripts/move_and_index.py <manifest.json> --archive-dir <target_dir>/archive --structure <yearmonth|type|custom> [--rules-text "<plain-language description, required for custom>"]
 ```
 
-This moves each file, never overwriting an existing file at the destination (it appends `-2`, `-3`, etc. on a name collision), and appends a row per file to `archive/index.md`. index.md always ends up with a `## Filing rules` section: created up front for a new index, or backfilled in place for an existing one that's missing it, with every existing row and any other content left exactly as it was. It only ever appends new rows; existing entries are never rewritten or reordered. If a source file has disappeared since the preview, or a `custom` entry is missing its `dest_relative`, that file is skipped with a warning rather than failing the whole batch.
+This moves each file, never overwriting an existing file at the destination (it appends `-2`, `-3`, etc. on a name collision), and appends a row per file to `archive/index.md`. index.md always ends up with a `## Filing rules` section and a Topic column: created up front for a new index, or backfilled in place for an existing one that's missing either (padding older rows with `-` in Topic so the table stays a consistent width), with every existing row and any other content left exactly as it was. It only ever appends new rows; existing entries are never rewritten or reordered. If a source file has disappeared since the preview, or a `custom` entry is missing its `dest_relative`, that file is skipped with a warning rather than failing the whole batch.
 
-## Step 6: Report back
+## Step 7: Report back
 
-Summarize what happened: how many files moved, where the archive lives, and a pointer to `index.md` if they want the full log. If any files were skipped in Step 5, mention that specifically, it's a sign something else is also touching this folder, or that a custom-structure entry needs fixing. Mention that the run can be undone if they change their mind (see below).
+Summarize what happened: how many files moved, where the archive lives, and a pointer to `index.md` if they want the full log. If any files were skipped in Step 6, mention that specifically, it's a sign something else is also touching this folder, or that a custom-structure entry needs fixing. Mention that the run can be undone if they change their mind (see below).
 
 ## Undoing a previous run
 
