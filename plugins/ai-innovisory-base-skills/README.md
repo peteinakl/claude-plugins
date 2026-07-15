@@ -10,6 +10,12 @@ Runs a full readiness review of research (pasted text, a document, or a URL) aga
 
 Trigger it with prompts like "is this good enough to act on", "is the thinking sound", or "can I take this to the board or client" — or hand it a document, market scan, or brief directly.
 
+### transcript-clean
+
+Cleans up a raw meeting transcript — especially an unlabelled one from Granola, Otter, Fireflies, Zoom, or Teams — into two files: a fully cleaned and attributed transcript, and a separate summary with attendees, discussion, decisions, and action items. Handles Granola's common "Me/Them" export pattern, where several real speakers can be collapsed into one label with no marker for who's talking; splits those on context cues and clearly flags anything it can't confidently attribute rather than guessing. Supports batch mode for a whole folder of transcripts, dispatching one subagent per file so 40 transcripts don't have to be processed serially in one conversation.
+
+Trigger it with prompts like "clean this up", "turn this into minutes", or by pasting in a wall of unlabelled call transcript.
+
 ### medifab-role (client-specific: Medifab)
 
 Interviews a Medifab team member about their role, one question at a time, and generates a concise role-layer profile in markdown, ready to paste into their Claude Project instructions underneath the shared Medifab company profile. Optionally, as a separate tag-on step afterwards, logs a first automation workflow (owner, review step, benefit measure) to its own file — this record stays out of the Project instructions since it's a one-off governance log, not context needed every conversation.
