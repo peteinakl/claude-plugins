@@ -25,6 +25,9 @@ venv/
 *.pem
 *.key
 
+# Internal agent notes, local only, never pushed
+CLAUDE.md
+
 # Build artefacts
 *.plugin
 /tmp/
