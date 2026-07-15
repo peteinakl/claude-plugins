@@ -1,6 +1,6 @@
 ---
 name: transcript-clean
-description: Cleans up a raw meeting transcript — especially one with no speaker labels, from tools like Granola, Otter, Fireflies, Zoom, or Teams — into a readable markdown file with speakers inferred from context, content organized by topic, and a dated filename that describes what's inside. Use this whenever the user has a messy or unlabelled transcript and wants clean notes or minutes out of it. Trigger even if they don't say "transcript" explicitly — e.g. "clean this up", "turn this into minutes", "who said what in this call", "make this readable", or they paste in a wall of unlabelled dialogue from a recording tool.
+description: Cleans up a raw meeting transcript, especially one with no speaker labels from tools like Granola, Otter, Fireflies, Zoom, or Teams, into two markdown files, a cleaned and fully attributed transcript with speakers inferred from context plus a separate meeting summary (attendees, discussion by topic, decisions, action items), each with a dated filename that describes what's inside. Also handles a whole folder of transcripts in batch mode, dispatching one subagent per file. Use this whenever the user has a messy or unlabelled transcript, or a folder of them, and wants clean notes or minutes out of it. Trigger even if they don't say "transcript" explicitly, e.g. "clean this up", "turn this into minutes", "who said what in this call", "make this readable", or they paste in a wall of unlabelled dialogue from a recording tool.
 ---
 
 # Transcript clean

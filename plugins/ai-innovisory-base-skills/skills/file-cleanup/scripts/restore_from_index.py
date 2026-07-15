@@ -14,9 +14,14 @@ for "undo the run I just did"). --archived-to takes a comma-separated list
 of "Archived to" values (paths relative to --archive-dir) for restoring a
 specific subset instead.
 
-This only understands the table format move_and_index.py produces: the
-"| Archived date | Original location | Archived to | Last modified | Size |"
-header row followed by one row per archived file. A heavily hand-edited
+This only understands the table format move_and_index.py produces: an
+"| Archived date | ... |" header row followed by one row per archived file,
+in either the older 5-column layout or the current 6-column (Topic) one.
+Rows are split on unescaped pipes only, and the escaping move_and_index.py
+applies when writing ("\\\\" for a backslash, "\\|" for a pipe) is reversed
+on each cell, so a filename containing pipes or backslashes restores to its
+exact original name. Rows written before that escaping existed contain no
+escape sequences and parse exactly as they always did. A heavily hand-edited
 index.md may not parse cleanly; if a row looks malformed it's silently
 skipped rather than guessed at.
 
@@ -35,10 +40,37 @@ import shutil
 import sys
 
 
+def split_row(line):
+    """Split one table row on unescaped pipes only, unescaping each cell as
+    it goes ("\\|" back to "|", "\\\\" back to "\\"), the exact inverse of
+    the escaping move_and_index.py applies when writing (backslash first,
+    then pipe). A lone backslash not followed by a backslash or pipe is kept
+    literally, so rows written before escaping existed parse unchanged."""
+    cells = []
+    current = []
+    i = 0
+    while i < len(line):
+        ch = line[i]
+        if ch == "\\" and i + 1 < len(line) and line[i + 1] in ("\\", "|"):
+            current.append(line[i + 1])
+            i += 2
+        elif ch == "|":
+            cells.append("".join(current))
+            current = []
+            i += 1
+        else:
+            current.append(ch)
+            i += 1
+    cells.append("".join(current))
+    return cells
+
+
 def parse_index_table(content):
     """Parse the archive table, tolerating both the 5-column format (before
     the Topic column existed) and the current 6-column one, so restoring
-    works regardless of when a given row was written."""
+    works regardless of when a given row was written. Cells are split on
+    unescaped pipes and unescaped via split_row, matching how
+    move_and_index.py writes them."""
     lines = content.splitlines()
     header_idx = None
     for i, line in enumerate(lines):
@@ -53,7 +85,14 @@ def parse_index_table(content):
         stripped = lines[i].strip()
         if not stripped.startswith("|"):
             continue
-        cells = [c.strip() for c in stripped.strip("|").split("|")]
+        parts = split_row(stripped)
+        # The leading and trailing "|" of a well-formed row leave one empty
+        # fragment at each end; drop those two, they aren't cells.
+        if parts and not parts[0].strip():
+            parts = parts[1:]
+        if parts and not parts[-1].strip():
+            parts = parts[:-1]
+        cells = [c.strip() for c in parts]
         if len(cells) not in (5, 6):
             continue
         rows.append({

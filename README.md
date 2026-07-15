@@ -25,7 +25,7 @@ See [PLUGINS.md](./PLUGINS.md) for the running schedule of plugins, their purpos
 
 | Plugin | Purpose | Current version |
 |---|---|---|
-| [ai-innovisory-base-skills](./plugins/ai-innovisory-base-skills) | General-purpose skills: `research-review`, `transcript-clean`, `file-cleanup` | 0.7.0 |
+| [ai-innovisory-base-skills](./plugins/ai-innovisory-base-skills) | General-purpose skills: `research-review`, `transcript-clean`, `file-cleanup` | 0.7.1 |
 | [medifab](./plugins/medifab) | Client-specific skills for Medifab: `medifab-role` | 0.1.0 |
 
 ## Repository structure

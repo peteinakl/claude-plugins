@@ -51,6 +51,18 @@ Safety:
   - Creates the archive directory (and any dest subfolders) if missing.
   - Never overwrites an existing file: if the destination already exists,
     appends "-2", "-3", etc. before the extension.
+  - Refuses to move a file anywhere outside the archive folder: every
+    destination is fully resolved (symlinks and ".." included) and checked
+    against the archive root before anything moves. The manifest is written
+    by an LLM, so this script is the backstop a bad dest_relative, whether
+    absolute or a ".." traversal, cannot get past; offending entries are
+    skipped with a stderr warning, not moved.
+  - Escapes backslashes and pipes when writing paths and topics into
+    index.md, so any legal filename round-trips through the log and back out
+    via restore_from_index.py. A name containing a newline or other control
+    character can't be represented in a line-based log at all, so that file
+    is skipped (left in place) rather than moved with a row that could never
+    be parsed back.
   - Skips (with a stderr warning) any source that no longer exists, or that
     has no resolvable destination, rather than failing the whole batch.
   - Only ever appends new rows to index.md, and only backfills a missing
@@ -116,17 +128,54 @@ def unique_dest(dest):
     return f"{base}-{n}{ext}"
 
 
+def is_within_archive(candidate_real, archive_root_real):
+    """True only if a fully resolved destination sits strictly inside the
+    resolved archive root. os.path.join discards the archive path entirely
+    when dest_relative is absolute, and ".." components (or a symlinked
+    subfolder) can walk the joined path back out of the archive, so
+    containment has to be checked on the real resolved path, never inferred
+    from the string that built it. The manifest is written by an LLM; this
+    check is what makes the script a backstop rather than a passthrough."""
+    if candidate_real == archive_root_real:
+        return False
+    try:
+        return os.path.commonpath([archive_root_real, candidate_real]) == archive_root_real
+    except ValueError:
+        # Paths that can't share a common path (e.g. different drives on
+        # Windows) are by definition not inside the archive.
+        return False
+
+
+def has_control_chars(text):
+    """True if text contains a newline or any other control character. A
+    line-based markdown table can't represent these in a way that parses
+    back, so names carrying them are refused at move time instead of being
+    moved with a row that would silently break undo."""
+    return any(ord(ch) < 32 or ord(ch) == 127 for ch in text)
+
+
 TOPIC_MAX_LEN = 140
 
 
 def sanitize_topic(topic):
-    """Keep a topic string from breaking the markdown table it lands in."""
+    """Flatten whitespace and cap the length so a topic fits one table cell.
+    Pipe and backslash escaping happens in escape_cell at write time, the
+    same as for the path columns."""
     if not topic:
         return "-"
-    flat = " ".join(topic.split()).replace("|", "/")
+    flat = " ".join(topic.split())
     if len(flat) > TOPIC_MAX_LEN:
         flat = flat[:TOPIC_MAX_LEN - 1].rstrip() + "…"
     return flat
+
+
+def escape_cell(text):
+    """Escape a value for one markdown table cell: backslash first, then
+    pipe, so restore_from_index.py can split rows on unescaped pipes and
+    reverse this exactly. Pipes are legal in Unix filenames; written raw
+    they would add phantom columns to the row, making it unparseable and
+    the move silently impossible to undo."""
+    return text.replace("\\", "\\\\").replace("|", "\\|")
 
 
 def human_size(n):
@@ -232,6 +281,7 @@ def main():
 
     archive_dir = os.path.abspath(args.archive_dir)
     os.makedirs(archive_dir, exist_ok=True)
+    archive_root = os.path.realpath(archive_dir)
     index_path = os.path.join(archive_dir, "index.md")
     is_new_index = not os.path.exists(index_path)
     today = date.today()
@@ -259,7 +309,26 @@ def main():
             )
             continue
 
-        dest = unique_dest(os.path.join(archive_dir, dest_rel))
+        candidate = os.path.realpath(os.path.join(archive_dir, dest_rel))
+        if not is_within_archive(candidate, archive_root):
+            print(
+                f"SKIP (destination would land outside the archive folder): "
+                f"{src} -> {dest_rel}",
+                file=sys.stderr,
+            )
+            continue
+
+        dest = unique_dest(candidate)
+        archived_to = os.path.relpath(dest, archive_root)
+
+        if has_control_chars(src) or has_control_chars(archived_to):
+            print(
+                f"SKIP (name contains a newline or other control character, "
+                f"which index.md cannot record in an undoable way): {src!r}",
+                file=sys.stderr,
+            )
+            continue
+
         os.makedirs(os.path.dirname(dest), exist_ok=True)
 
         mtime = os.path.getmtime(src)
@@ -269,7 +338,7 @@ def main():
         rows.append({
             "archived_date": today.isoformat(),
             "original_path": src,
-            "archived_to": os.path.relpath(dest, archive_dir),
+            "archived_to": archived_to,
             "last_modified": datetime.fromtimestamp(mtime).date().isoformat(),
             "size": human_size(size),
             "topic": sanitize_topic(topic),
@@ -308,8 +377,9 @@ def main():
     with open(index_path, "a") as f:
         for r in rows:
             f.write(
-                f"| {r['archived_date']} | {r['original_path']} | {r['archived_to']} "
-                f"| {r['last_modified']} | {r['size']} | {r['topic']} |\n"
+                f"| {r['archived_date']} | {escape_cell(r['original_path'])} "
+                f"| {escape_cell(r['archived_to'])} | {r['last_modified']} "
+                f"| {r['size']} | {escape_cell(r['topic'])} |\n"
             )
 
     print(f"Updated index: {index_path} ({len(rows)} entries added)")
