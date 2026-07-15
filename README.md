@@ -1,6 +1,6 @@
 # claude-plugins
 
-A Claude Cowork plugin marketplace maintained by [AI Innovisory](https://aiinnovisory.com). Plugins here are provided freely as base building blocks — general-purpose skills that aren't tied to a specific client engagement.
+A Claude Cowork plugin marketplace maintained by [AI Innovisory](https://aiinnovisory.com). Plugins here are provided freely as base building blocks — mostly general-purpose skills, with a small number of client-specific skills bundled in where a dedicated plugin isn't warranted.
 
 ## Marketplace
 
@@ -25,7 +25,7 @@ See [PLUGINS.md](./PLUGINS.md) for the running schedule of plugins, their purpos
 
 | Plugin | Purpose | Current version |
 |---|---|---|
-| [ai-innovisory-base-skills](./plugins/ai-innovisory-base-skills) | Standardised general-purpose skills, starting with `research-review` | 0.1.0 |
+| [ai-innovisory-base-skills](./plugins/ai-innovisory-base-skills) | General-purpose skills (`research-review`) plus client role-setup skills (`medifab-role`) | 0.2.0 |
 
 ## Repository structure
 
