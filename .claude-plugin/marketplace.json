@@ -10,7 +10,7 @@
     {
       "name": "ai-innovisory-base-skills",
       "source": "./plugins/ai-innovisory-base-skills",
-      "description": "Standardised, general-purpose base skills for Claude Cowork from AI Innovisory: research review and transcript cleanup.",
+      "description": "Standardised, general-purpose base skills for Claude Cowork from AI Innovisory: research review, transcript cleanup, and file cleanup/archiving.",
       "author": {
         "name": "Peter Mangin",
         "email": "peter@aiinnovisory.com"

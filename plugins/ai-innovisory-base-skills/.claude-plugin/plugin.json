@@ -1,6 +1,6 @@
 {
   "name": "ai-innovisory-base-skills",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Standardised, general-purpose base skills for Claude Cowork, provided freely by AI Innovisory.",
   "author": {
     "name": "Peter Mangin",
@@ -9,5 +9,5 @@
   "homepage": "https://github.com/peteinakl/claude-plugins",
   "repository": "https://github.com/peteinakl/claude-plugins",
   "license": "MIT",
-  "keywords": ["ai-innovisory", "research", "review", "cowork", "base-skills", "transcripts"]
+  "keywords": ["ai-innovisory", "research", "review", "cowork", "base-skills", "transcripts", "file-cleanup", "archive"]
 }

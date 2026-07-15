@@ -16,6 +16,12 @@ Cleans up a raw meeting transcript — especially an unlabelled one from Granola
 
 Trigger it with prompts like "clean this up", "turn this into minutes", or by pasting in a wall of unlabelled call transcript.
 
+### file-cleanup
+
+Finds files in a folder that haven't been modified in 90+ days, previews the list for approval, then moves the approved files into a structured `archive/` subfolder and logs every move in a markdown `index.md`. Only scans the top level of the target folder, subfolders are left alone. Nothing is moved without explicit confirmation, `index.md` is never itself archived, and Claude's own context files (`CLAUDE.md`, `MEMORY.md`, anything `CLAUDE.md` references) are always protected regardless of age. It never inspects file contents to make a decision, just filename, size, and age, which keeps it cheap even next to large video or audio files, and it flags files that carry an old modified date but were placed in the folder more recently (e.g. a copy that preserved timestamps) so those get a second look before archiving. On repeat runs it reads the archive structure back out of `index.md`'s `## Filing rules` section (year-month by default, or by-type if that's what's already there) so it stays consistent without re-asking, and a previous run can be undone from the same log.
+
+Trigger it with prompts like "clean up my Downloads folder", "archive anything I haven't touched in months", or "this folder's a mess, get rid of the old stuff", naming a folder and wanting it tidied is the signal, not any particular keyword.
+
 ## Installing
 
 Add the marketplace, then install the plugin:
