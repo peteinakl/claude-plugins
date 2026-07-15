@@ -10,7 +10,17 @@
     {
       "name": "ai-innovisory-base-skills",
       "source": "./plugins/ai-innovisory-base-skills",
-      "description": "Standardised base skills for Claude Cowork from AI Innovisory, starting with a research readiness reviewer.",
+      "description": "Standardised, general-purpose base skills for Claude Cowork from AI Innovisory: research review and transcript cleanup.",
+      "author": {
+        "name": "Peter Mangin",
+        "email": "peter@aiinnovisory.com"
+      },
+      "license": "MIT"
+    },
+    {
+      "name": "medifab",
+      "source": "./plugins/medifab",
+      "description": "Client-specific Claude Cowork skills for Medifab.",
       "author": {
         "name": "Peter Mangin",
         "email": "peter@aiinnovisory.com"

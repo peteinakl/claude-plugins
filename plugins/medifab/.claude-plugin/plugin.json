@@ -1,0 +1,13 @@
+{
+  "name": "medifab",
+  "version": "0.1.0",
+  "description": "Client-specific Claude Cowork skills for Medifab, maintained by AI Innovisory.",
+  "author": {
+    "name": "Peter Mangin",
+    "email": "peter@aiinnovisory.com"
+  },
+  "homepage": "https://github.com/peteinakl/claude-plugins",
+  "repository": "https://github.com/peteinakl/claude-plugins",
+  "license": "MIT",
+  "keywords": ["ai-innovisory", "medifab", "cowork", "onboarding"]
+}

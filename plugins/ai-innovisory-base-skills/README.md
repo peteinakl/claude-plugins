@@ -1,6 +1,6 @@
 # AI Innovisory base skills
 
-Claude Cowork skills, provided freely by [AI Innovisory](https://aiinnovisory.com). Started as a purely general-purpose base layer; now also carries client-specific role-setup skills where a dedicated plugin isn't warranted.
+Claude Cowork skills, provided freely by [AI Innovisory](https://aiinnovisory.com) — the general-purpose base layer every AI Innovisory Cowork setup starts from. Client-specific skills live in their own dedicated plugins (e.g. [`medifab`](../medifab)), not here.
 
 ## Skills included
 
@@ -15,12 +15,6 @@ Trigger it with prompts like "is this good enough to act on", "is the thinking s
 Cleans up a raw meeting transcript — especially an unlabelled one from Granola, Otter, Fireflies, Zoom, or Teams — into two files: a fully cleaned and attributed transcript, and a separate summary with attendees, discussion, decisions, and action items. Handles Granola's common "Me/Them" export pattern, where several real speakers can be collapsed into one label with no marker for who's talking; splits those on context cues and clearly flags anything it can't confidently attribute rather than guessing. Supports batch mode for a whole folder of transcripts, dispatching one subagent per file so 40 transcripts don't have to be processed serially in one conversation.
 
 Trigger it with prompts like "clean this up", "turn this into minutes", or by pasting in a wall of unlabelled call transcript.
-
-### medifab-role (client-specific: Medifab)
-
-Interviews a Medifab team member about their role, one question at a time, and generates a concise role-layer profile in markdown, ready to paste into their Claude Project instructions underneath the shared Medifab company profile. Optionally, as a separate tag-on step afterwards, logs a first automation workflow (owner, review step, benefit measure) to its own file — this record stays out of the Project instructions since it's a one-off governance log, not context needed every conversation.
-
-Trigger it with "help me set up my role", "add my role", or similar during or after the Medifab AI training day.
 
 ## Installing
 
