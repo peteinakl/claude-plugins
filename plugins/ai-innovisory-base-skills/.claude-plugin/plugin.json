@@ -1,6 +1,6 @@
 {
   "name": "ai-innovisory-base-skills",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Base skills for Claude Cowork, provided freely by AI Innovisory, plus client role-setup skills.",
   "author": {
     "name": "Peter Mangin",

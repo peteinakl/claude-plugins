@@ -12,7 +12,7 @@ Trigger it with prompts like "is this good enough to act on", "is the thinking s
 
 ### medifab-role (client-specific: Medifab)
 
-Interviews a Medifab team member about their role and generates a concise role-layer profile in markdown, ready to paste into their Claude Project instructions underneath the shared Medifab company profile.
+Interviews a Medifab team member about their role, one question at a time, and generates a concise role-layer profile in markdown, ready to paste into their Claude Project instructions underneath the shared Medifab company profile. Optionally, as a separate tag-on step afterwards, logs a first automation workflow (owner, review step, benefit measure) to its own file — this record stays out of the Project instructions since it's a one-off governance log, not context needed every conversation.
 
 Trigger it with "help me set up my role", "add my role", or similar during or after the Medifab AI training day.
 
